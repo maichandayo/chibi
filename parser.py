@@ -28,9 +28,17 @@ def parse(s:str):
         s1 = s[0:pos]
         s2 = s[pos+1:]
         return Mul(parse(s1),parse(s2))
+    if s.rfind('-') > 0:
+        pos = s.rfind('-')
+        s1 = s[0:pos]
+        s2 = s[pos+1:]
+        print(s1, s2)
+        return Sub(parse(s1),parse(s2))
     return Val(int(s))
 
 e = parse("1+2+3")
 print(e.eval())
 e = parse("1+2*3")
+print(e.eval())
+e = parse("1-2-3")
 print(e.eval())
