@@ -99,9 +99,46 @@ class Assign(Expr):
     def eval(self, env):
         env[self.name] = self.e.eval(env)
         return env[self.name]
+
+class Block(Expr):
+    __slots__ =['exprs']
+    def __init__(self,*exprs):  #可変長個の引数
+        self.expr = exprs       #[e,e2,e3,e4,e5]リストになっている
+    def eval(self,env):
+        for e in self.exprs:
+            e.eval(env)
+
+#Block(e,e2,e3,e4,e5)
+        
+
+class While(Expr):
+    __slots__ =['cond','body']
+    def __init__(self,*exprs):
+        self.expr = exprs
+    def eval(self,env):
+        while self.cond.eval(env) !=0:
+            self.body.eval(env)
+
+
+class If(Expr):
+    __slots__ = ['cond','then','else']
+    def __init__(self,cond,then,else_):
+        self.cond = cond
+        self.then = then
+        self.else_ = else_
+    def eval(self,env):
+        yesorno = self.cond.eval(env)
+        if yesorno == 1:
+            return self.then.eval(env)
+        else:
+            return self.else_.eval(env)
 def conv(tree):
     if tree == 'Block':
         return conv(tree[0])
+    if tree == 'If':
+        return If(conv(tree[0]),conv(tree[1]),conv(tree[2]))
+    if tree == 'While':
+        return While(conv(tree[0]),conv(tree[1]))
     if tree == 'Val' or tree == 'Int':
         return Val(int(str(tree)))
     if tree == 'Add':
