@@ -87,6 +87,8 @@ class Var(Expr):
     __slots__ = ['name']
     def __init__(self, name):
         self.name = name
+    def __repr__(self):
+        return self.name
     def eval(self, env: dict):
         if self.name in env:
             return env[self.name]
@@ -102,26 +104,24 @@ class Assign(Expr):
 
 class Block(Expr):
     __slots__ =['exprs']
-    def __init__(self,*exprs):  #可変長個の引数
-        self.expr = exprs       #[e,e2,e3,e4,e5]リストになっている
+    def __init__(self, *exprs):  #可変長個の引数
+        self.exprs = exprs       #[e,e2,e3,e4,e5]リストになっている
     def eval(self,env):
         for e in self.exprs:
             e.eval(env)
 
-#Block(e,e2,e3,e4,e5)
-        
-
 class While(Expr):
     __slots__ =['cond','body']
-    def __init__(self,*exprs):
-        self.expr = exprs
+    def __init__(self,cond,body):
+        self.cond = cond
+        self.body = body
     def eval(self,env):
         while self.cond.eval(env) !=0:
             self.body.eval(env)
 
 
 class If(Expr):
-    __slots__ = ['cond','then','else']
+    __slots__ = ['cond','then','else_']
     def __init__(self,cond,then,else_):
         self.cond = cond
         self.then = then
@@ -132,9 +132,58 @@ class If(Expr):
             return self.then.eval(env)
         else:
             return self.else_.eval(env)
+
+e = Block(
+    Assign('x',Val(1)),
+    Assign('y',Val(2)),
+    If(Gt(Var('x'),Var('y')),Var('x'),Var('y'))
+)
+assert e.eval({}) == 2
+
+class Lambda(Expr):
+    __slots__ =['name','body']
+    def __init__(self,name,body):
+        self.name=name
+        self.body=body
+    def __repr__(self):
+        return f'λ{self.name}.{str(self.body)}'
+    def eval(self,env):
+        pass
+
+f=Lambda('x',Add(Var('x'),1))
+print(repr(f))
+
+def copy(env):
+    newenv = {}
+    for x in env.keys():
+        newenv[x]=env[x]
+    return env
+
+class FuncApp(Expr):
+    __slots__=['func','param']
+    def __init__(self,func:Lambda,param):
+        self.func=func
+        self.param=Expr.new(param)
+    def __repr__(self):
+        return f'({repr(self.func)})({repr(self.param)})'
+
+    def eval(self,env):
+        f=self.func.eval(env)
+        v=self.param.eval(env)
+        name=self.func.name
+        env[name]=v
+        return self.func.body.eval(env)
+
+e=FuncApp(f,Add(1,1))        
+
+print(e,'=>',eval({}))
 def conv(tree):
     if tree == 'Block':
         return conv(tree[0])
+    if tree =='FuncDecl':
+        return Assign(str(tree[0]),Lambda(str(tree[1]),conv(tree[2])))
+    if tree == 'FuncApp':
+        return FuncApp(conv(tree[0]),conv(tree[1]))
     if tree == 'If':
         return If(conv(tree[0]),conv(tree[1]),conv(tree[2]))
     if tree == 'While':
